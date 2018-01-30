@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -33,66 +34,56 @@ namespace Trabo
         
         public async Task<ExchangeResultDto> SellLimit(string currencyPair, decimal amount, decimal price)
         {
-            var response = await MakeRequest("/exchange/selllimit", Method.POST, new Dictionary<string, string>()
+            var dto = await MakeRequest<ExchangeResultDto>("/exchange/selllimit", Method.POST, new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair},
                 {"quantity", amount.ToString(CultureInfo.InvariantCulture)},
                 {"price", price.ToString(CultureInfo.InvariantCulture)}
             });
-
-            var dto = JsonConvert.DeserializeObject<ExchangeResultDto>(response.Content);
 
             return dto;
         }
         
         public async Task<ExchangeResultDto> BuyLimit(string currencyPair, decimal amount, decimal price)
         {
-            var response = await MakeRequest("/exchange/buylimit", Method.POST, new Dictionary<string, string>()
+            var dto = await MakeRequest<ExchangeResultDto>("/exchange/buylimit", Method.POST, new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair},
                 {"quantity", amount.ToString(CultureInfo.InvariantCulture)},
                 {"price", price.ToString(CultureInfo.InvariantCulture)}
             });
 
-            var dto = JsonConvert.DeserializeObject<ExchangeResultDto>(response.Content);
-
             return dto;
         }
         
         public async Task<ExchangeResultDto> SellMarket(string currencyPair, decimal amount)
         {
-            var response = await MakeRequest("/exchange/sellmarket", Method.POST, new Dictionary<string, string>()
+            var dto = await MakeRequest<ExchangeResultDto>("/exchange/sellmarket", Method.POST, new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair},
                 {"quantity", amount.ToString(CultureInfo.InvariantCulture)}
             });
-
-            var dto = JsonConvert.DeserializeObject<ExchangeResultDto>(response.Content);
 
             return dto;
         }
         
         public async Task<ExchangeResultDto> BuyMarket(string currencyPair, decimal amount)
         {
-            var response = await MakeRequest("/exchange/buymarket", Method.POST, new Dictionary<string, string>()
+            var dto = await MakeRequest<ExchangeResultDto>("/exchange/buymarket", Method.POST, new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair},
                 {"quantity", amount.ToString(CultureInfo.InvariantCulture)}
             });
-
-            var dto = JsonConvert.DeserializeObject<ExchangeResultDto>(response.Content);
 
             return dto;
         }
 
         public async Task<BidAskDto> GetBidAsk(string currencyPair)
         {
-            var response = await MakeRequest("/exchange/maxbid_minask", Method.GET,new Dictionary<string, string>()
+            var dto = await MakeRequest<CurrencyPairsDto<BidAskDto>>("/exchange/maxbid_minask", Method.GET,new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair}
             });
-
-            var dto = JsonConvert.DeserializeObject<CurrencyPairsDto<BidAskDto>>(response.Content);
 
             return dto.currencyPairs[0];
         }
@@ -102,19 +93,17 @@ namespace Trabo
             bool groupByPrice,
             int depth)
         {
-            var response = await MakeRequest("/exchange/order_book", Method.GET, new Dictionary<string, string>()
+            var dto = await MakeRequest<OrderBookDto>("/exchange/order_book", Method.GET, new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair},
                 {"groupByPrice", groupByPrice.ToString()},
                 {"depth", depth.ToString()}
             });
 
-            var dto = JsonConvert.DeserializeObject<OrderBookDto>(response.Content);
-
             return dto;
         }
 
-        private async Task<IRestResponse> MakeRequest(string method, Method httpMethod, Dictionary<string, string> data)
+        private async Task<T> MakeRequest<T>(string method, Method httpMethod, Dictionary<string, string> data)
         {
             var sortedData = data.OrderBy(kv => kv.Key).ToArray();
             var hashString = CalculateHMAC(sortedData);
@@ -129,7 +118,9 @@ namespace Trabo
                 request.AddParameter(parameter.Key, parameter.Value, ParameterType.GetOrPost);
             }
 
-            return await _client.ExecuteTaskAsync(request);
+            var response = await _client.ExecuteTaskAsync(request);
+
+            return JsonConvert.DeserializeObject<T>(response.Content);
         }
 
         private string CalculateHMAC(KeyValuePair<string, string>[] sortedData)
