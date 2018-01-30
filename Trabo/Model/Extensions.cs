@@ -5,6 +5,8 @@ namespace Trabo.Model
 {
     public static class DataExtensions
     {
+        private static readonly DateTime UnixTimeStamp = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+
         public static OrderBook ToOrderBook(this OrderBookDto dto)
         {
             return new OrderBook()
@@ -24,9 +26,16 @@ namespace Trabo.Model
             };
         }
 
-        public static DateTime ToDateTime(long unixtime)
+        public static DateTime ToDateTime(long unixtime, bool seconds = false)
         {
-            return new System.DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(unixtime);
+            if (seconds)
+            {
+                return UnixTimeStamp.AddSeconds(unixtime);
+            }
+            else
+            {
+                return UnixTimeStamp.AddMilliseconds(unixtime);
+            }
         }
     }
 }
