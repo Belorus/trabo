@@ -19,4 +19,12 @@
         public double[][] asks;
         public double[][] bids;
     }
+
+    public class ExchangeResultDto
+    {
+        public bool success;
+        public bool added;
+        public string exception;
+        public string orderId;
+    }
 }
