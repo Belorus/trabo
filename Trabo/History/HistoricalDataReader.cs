@@ -8,16 +8,15 @@ namespace Trabo.History
 {
     public class HistoricalDataReader
     {
-        public async Task<IReadOnlyList<HistoricalDataModel>> ReadData(string path)
+        public IEnumerable<HistoricalDataModel> ReadData(string path)
         {
-            var data = new List<HistoricalDataModel>(3000000);
             using (var file = File.OpenRead(path))
             using (var reader = new StreamReader(file))
             {
                 reader.ReadLine(); // Timestamp,Open,High,Low,Close,Volume_(BTC),Volume_(Currency),Weighted_Price
 
                 string line;
-                while ((line = await reader.ReadLineAsync()) != null)
+                while ((line = reader.ReadLine()) != null)
                 {
                     var values = line.Split(',');
                     var model = new HistoricalDataModel
@@ -32,11 +31,9 @@ namespace Trabo.History
                       //  WeightedPrice = decimal.Parse(values[7]),
                     };
 
-                    data.Add(model);
+                    yield return model;
                 }
             }
-
-            return data;
         }
     }
 
