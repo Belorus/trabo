@@ -27,4 +27,13 @@
         public string exception;
         public string orderId;
     }
+
+    public class TradeDto
+    {
+        public long time;
+        public long id;
+        public double price;
+        public double quantity;
+        public string type;
+    }
 }

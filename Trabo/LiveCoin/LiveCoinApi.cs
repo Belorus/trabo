@@ -26,10 +26,6 @@ namespace Trabo
             _apiKey = apiKey;
             
             _client = new RestClient(@"https://api.livecoin.net/");
-            _client.Proxy = new WebProxy()
-            {
-                Address = new Uri("http://localhost:8888", UriKind.Absolute),
-            };
         }
         
         public async Task<ExchangeResultDto> SellLimit(string currencyPair, decimal amount, decimal price)
@@ -73,6 +69,18 @@ namespace Trabo
             {
                 {"currencyPair", currencyPair},
                 {"quantity", amount.ToString(CultureInfo.InvariantCulture)}
+            });
+
+            return dto;
+        }
+        
+        public async Task<TradeDto[]> GetLastTrades(string currencyPair)
+        {
+            var dto = await MakeRequest<TradeDto[]>("/exchange/last_trades", Method.GET,new Dictionary<string, string>()
+            {
+                {"currencyPair", currencyPair},
+                {"minutesOrHour", "true"},
+                {"type", "BUY"}
             });
 
             return dto;

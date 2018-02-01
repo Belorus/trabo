@@ -14,6 +14,15 @@ namespace Trabo.Model
         }
     }
 
+    public class Trade
+    {
+        public DateTime Time;
+        public long Id;
+        public decimal Price;
+        public decimal Quantity;
+        public string Type;
+    }
+
     public class Bet
     {
         public decimal Volume;

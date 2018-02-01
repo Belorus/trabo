@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using InfluxDB.LineProtocol.Client;
 using InfluxDB.LineProtocol.Payload;
@@ -17,8 +19,34 @@ namespace Trabo
             // To avoid decimal parse issues
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
-            
-            await ReadHistoricalData();
+
+            var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "trabo");
+            var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
+            while (true)
+            {
+                var model = (await api.GetBidAsk("BTC/USD")).ToBidAsk();
+                var trades = (await api.GetLastTrades("BTC/USD")).Select(d => d.ToTrade()).ToArray();
+                
+                var payload = new LineProtocolPayload();
+                payload.Add(
+                    new LineProtocolPoint("price", new Dictionary<string, object>()
+                    {
+                        {"maxBid", model.MaxBid},
+                        {"minAsk", model.MinAsk},
+                    }, utcTimestamp: DateTime.UtcNow));
+
+                foreach (var t in trades)
+                {
+                    payload.Add(
+                        new LineProtocolPoint("trades", new Dictionary<string, object>()
+                        {
+                            {"price", t.Price},
+                            {"quantity", t.Quantity},
+                        }, utcTimestamp: t.Time));
+                }
+
+                await cl.WriteAsync(payload);
+            }            
         }
 
         static async Task ReadHistoricalData()

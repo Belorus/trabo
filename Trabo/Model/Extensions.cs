@@ -17,6 +17,18 @@ namespace Trabo.Model
             };
         }
 
+        public static Trade ToTrade(this TradeDto dto)
+        {
+            return new Trade()
+            {
+                Id = dto.id,
+                Price = (decimal) dto.price,
+                Quantity = (decimal) dto.quantity,
+                Type = dto.type,
+                Time = ToDateTime(dto.time, true)
+            };
+        }
+        
         public static BidAsk ToBidAsk(this BidAskDto dto)
         {
             return new BidAsk()
