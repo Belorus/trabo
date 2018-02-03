@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Threading;
 using Trabo.Model;
 
 namespace Trabo
@@ -26,13 +27,11 @@ namespace Trabo
 
         public void Start()
         {
-            Trades = Observable.Interval(TimeSpan.FromSeconds(3))
-                .SelectMany(time => _api.GetLastTrades(_currencyPair).ToObservable())
+            Trades = new TaskRepeatObservable().Create(() => _api.GetLastTrades(_currencyPair), CancellationToken.None)
                 .SelectMany(dtos => dtos.Select(d => d.ToTrade()).OrderBy(x => x.Time))
                 .Distinct(x => x.Id);
 
-            Bets = Observable.Interval(TimeSpan.FromSeconds(3))
-                .SelectMany(time => _api.GetBidAsk(_currencyPair).ToObservable())
+            Bets = new TaskRepeatObservable().Create(() => _api.GetBidAsk(_currencyPair), CancellationToken.None)
                 .Select(dto => dto.ToBidAsk());
 
             MovingAverage = Trades.Select(t => t.Price)
