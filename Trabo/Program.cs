@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using InfluxDB.LineProtocol.Client;
 using InfluxDB.LineProtocol.Payload;
@@ -22,6 +24,11 @@ namespace Trabo
 
             var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "trabo");
             var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
+
+
+            var movingAvarage = new Accord.Statistics.Moving.MovingCircularStatistics(20);
+            
+            
             while (true)
             {
                 var model = (await api.GetBidAsk("BTC/USD")).ToBidAsk();
@@ -37,16 +44,18 @@ namespace Trabo
 
                 foreach (var t in trades)
                 {
+                    movingAvarage.Push((double)t.Price);
                     payload.Add(
                         new LineProtocolPoint("trades", new Dictionary<string, object>()
                         {
                             {"price", t.Price},
                             {"quantity", t.Quantity},
-                        }, utcTimestamp: t.Time));
+                            {"movingAvarage", movingAvarage.Mean}
+                        }, utcTimestamp: t.Time));   
                 }
-
-                await cl.WriteAsync(payload);
-            }            
+            }
+            
+            Accord.Controls.
         }
 
         static async Task ReadHistoricalData()
