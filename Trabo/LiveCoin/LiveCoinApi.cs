@@ -113,6 +113,8 @@ namespace Trabo
 
         private async Task<T> MakeRequest<T>(string method, Method httpMethod, Dictionary<string, string> data)
         {
+            await Task.Delay(2000);
+
             var sortedData = data.OrderBy(kv => kv.Key).ToArray();
             var hashString = CalculateHMAC(sortedData);
 

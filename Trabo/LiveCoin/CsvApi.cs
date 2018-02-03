@@ -25,25 +25,33 @@ namespace Trabo
             
             _reader = new HistoricalDataReader();
             _reader.OpenData(path);
-            _dataEnumerable = _reader.Data().Skip(1500000).GetEnumerator();
+            _dataEnumerable = _reader.Data().Skip(3150000).GetEnumerator();
         }
         
         public Task<TradeDto[]> GetLastTrades(string currencyPair)
         {
             _lastTradeReaded = true;
-            var data = GetData();
+            (var id, var data) = GetData();
 
             if (data != null)
             {
-                var dto = new TradeDto
+                var dtoLow = new TradeDto
                 {
-                    id = _id++,
-                    price = data.Low + (data.Hight - data.Low) / 2,
+                    id = id,
+                    price = data.Low,
                     quantity = data.BTCVolume,
                     time = data.Date,
                     type = "type"
                 };
-                return Task.FromResult(new TradeDto[] {dto});
+                var dtoHi = new TradeDto
+                {
+                    id = id + 1,
+                    price = data.Hight,
+                    quantity = data.BTCVolume,
+                    time = data.Date+1,
+                    type = "type"
+                };
+                return Task.FromResult(new TradeDto[] {dtoLow, dtoHi});
             }
             else
             {
@@ -55,7 +63,7 @@ namespace Trabo
         public Task<BidAskDto> GetBidAsk(string currencyPair)
         {
             _bidAskReaded = true;
-            var data = GetData();
+            (var id, var data) = GetData();
 
             if (data != null)
             {
@@ -75,7 +83,31 @@ namespace Trabo
             }
         }
 
-        private HistoricalDataModel GetData()
+        public Task<OrderBookDto> GetOrderbook(string currencyPair, bool groupByPrice, int depth)
+        {
+            _bidAskReaded = true;
+            (var id, var data) = GetData();
+
+            if (data != null)
+            {
+                var dto = new OrderBookDto
+                {
+                    timestamp = data.Date * 1000,
+
+                    bids = new[] { new[] { (data.Low + (data.Hight - data.Low) / 2) * 0.999, data.BTCVolume } },
+                    asks = new[] { new[] { (data.Low + (data.Hight - data.Low) / 2) * 1.001, data.BTCVolume } },
+                };
+
+                return Task.FromResult(dto);
+            }
+            else
+            {
+                var tsc = new TaskCompletionSource<OrderBookDto>();
+                return tsc.Task;
+            }
+        }
+
+        private (long, HistoricalDataModel) GetData()
         {
             lock (_lock)
             {
@@ -92,9 +124,14 @@ namespace Trabo
 
                     _lastTradeReaded = false;
                     _bidAskReaded = false;
+                    return (_id+=2, _lastData);
+                }
+                else
+                {
+                    return (_id, _lastData);
                 }
 
-                return _lastData;
+                
             }
         }
         
@@ -102,5 +139,7 @@ namespace Trabo
         {
             _reader.Dispose();
         }
+
+        
     }
 }

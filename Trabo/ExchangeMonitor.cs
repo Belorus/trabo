@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading;
+using Accord.Statistics.Moving;
 using Trabo.Model;
 
 namespace Trabo
@@ -23,6 +24,9 @@ namespace Trabo
         public IObservable<decimal> MovingAverage { get; set; }
         public IObservable<Trade> Trades { get; private set; }
         public IObservable<OrderBook> OrderBook { get; private set; }
+
+        private MovingNormalStatistics movingAvarage;
+
         public void Start()
         {
             Trades = new TaskRepeatObservable().Create(() => _api.GetLastTrades(_currencyPair), CancellationToken.None)
@@ -33,18 +37,8 @@ namespace Trabo
                 .Select(ob => ob.ToOrderBook());
 
 
-            var movingAvarage = new Accord.Statistics.Moving.MovingNormalStatistics(250);
-            MovingAverage = Trades.Select(t => {
-                double p = (double)t.Price;
-                movingAvarage.Push(p);
-                return (decimal)movingAvarage.Mean;
-                }
-            );
-                //.Buffer(250, 1)
-                //.Select(o => o.Average());
-
-            Delta = Bets.Zip(MovingAverage,
-                (ask, avg) => ((avg - ask.MinAsk) / avg, (ask.MaxBid - avg) / avg));
+            movingAvarage = new Accord.Statistics.Moving.MovingNormalStatistics(250);
+            MovingAverage = Trades.Select(t => t.Price).Buffer(10, 1).Select(l => l.Average());
         }
     }
 }

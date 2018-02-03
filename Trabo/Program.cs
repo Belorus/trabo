@@ -22,22 +22,49 @@ namespace Trabo
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
-            var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "trabo");
-            //var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
+            var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "bitstamp");
 
-            using (var api = new CsvApi(@"D:\bitcoin-historical-data\bitstampUSD_1-min_data_2012-01-01_to_2018-01-08.csv"))
+            var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
+            //using (var api = new CsvApi(@"D:\bitcoin-historical-data\bitstampUSD_1-min_data_2012-01-01_to_2018-01-08.csv"))
             {
-                var monitor = new ExchangeMonitor(api, "BTC/USD");
+                var monitor = new ExchangeMonitor(api, "BCH/BTC");
                 monitor.Start();
 
+                Observable.CombineLatest(
+                        monitor.MovingAverage,
+                        monitor.OrderBook,
+                        (avg, ob) => new { avg, ob, str = $"{ob.Time}: Orderbook" })
+                        .Subscribe(an =>
+                        {
+                            var payload = new LineProtocolPayload();
+                            payload.Add(
+                                new LineProtocolPoint("stat", new Dictionary<string, object>()
+                                {
+                                    {"dt", (an.ob.Bids[0].Price - an.avg) / an.avg}
+                                                
+                                }, utcTimestamp: an.ob.Time));
 
-            Observable.CombineLatest(
-                    monitor.MovingAverage,
-                    monitor.OrderBook,
-                    (avg, ob) =>
-                        ($"SMA: {avg:C0} OB: {ob.Bids[0].Price:F0}/{ob.Asks[0].Price:F0} D: {((avg - ob.Asks[0].Price) / avg)}/{(ob.Bids[0].Price - avg) / avg}"))
-                .Subscribe(s => Console.WriteLine(s));
-            
+                            cl.WriteAsync(payload).Wait();
+                        });
+
+                Observable.CombineLatest(
+                        monitor.MovingAverage,
+                        monitor.Trades,
+                        (avg, tr) => new { avg, tr, str = ($"{tr.Time}  SMA: {avg:C4} Price: {tr.Price}") })
+                    .Subscribe(d =>
+                    {
+                        Console.WriteLine(d.str);
+                        var payload = new LineProtocolPayload();
+                        payload.Add(
+                            new LineProtocolPoint("trade", new Dictionary<string, object>()
+                            {
+                                                {"avg", d.avg},
+                                                {"price", d.tr.Price},
+                            }, utcTimestamp: d.tr.Time));
+
+                        cl.WriteAsync(payload).Wait();
+                        //.Subscribe(s => Console.WriteLine(s));
+                    });
                 Console.ReadLine();    
             }
         }
