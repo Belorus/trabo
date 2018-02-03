@@ -21,6 +21,11 @@ namespace Trabo.Model
         public decimal Price;
         public decimal Quantity;
         public string Type;
+
+        public override string ToString()
+        {
+            return $"{nameof(Time)}: {Time}, {nameof(Price)}: {Price}, {nameof(Quantity)}: {Quantity}";
+        }
     }
 
     public class Bet

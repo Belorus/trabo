@@ -79,7 +79,7 @@ namespace Trabo
             var dto = await MakeRequest<TradeDto[]>("/exchange/last_trades", Method.GET,new Dictionary<string, string>()
             {
                 {"currencyPair", currencyPair},
-                {"minutesOrHour", "true"},
+                {"minutesOrHour", "false"},
                 {"type", "BUY"}
             });
 

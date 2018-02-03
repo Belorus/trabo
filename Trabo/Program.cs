@@ -16,7 +16,7 @@ namespace Trabo
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
             // To avoid decimal parse issues
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -25,37 +25,48 @@ namespace Trabo
             var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "trabo");
             var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
 
+            var monitor = new ExchangeMonitor(api, "BTC/USD");
+            monitor.Start();
 
-            var movingAvarage = new Accord.Statistics.Moving.MovingCircularStatistics(20);
-            
-            
-            while (true)
-            {
-                var model = (await api.GetBidAsk("BTC/USD")).ToBidAsk();
-                var trades = (await api.GetLastTrades("BTC/USD")).Select(d => d.ToTrade()).ToArray();
-                
-                var payload = new LineProtocolPayload();
-                payload.Add(
-                    new LineProtocolPoint("price", new Dictionary<string, object>()
-                    {
-                        {"maxBid", model.MaxBid},
-                        {"minAsk", model.MinAsk},
-                    }, utcTimestamp: DateTime.UtcNow));
 
-                foreach (var t in trades)
-                {
-                    movingAvarage.Push((double)t.Price);
-                    payload.Add(
-                        new LineProtocolPoint("trades", new Dictionary<string, object>()
-                        {
-                            {"price", t.Price},
-                            {"quantity", t.Quantity},
-                            {"movingAvarage", movingAvarage.Mean}
-                        }, utcTimestamp: t.Time));   
-                }
-            }
+            Observable.CombineLatest(
+                    monitor.MovingAverage,
+                    monitor.Delta,
+                    monitor.Bets,
+                    (avg, tup, bet) =>
+                        ($"SMA: {avg:C0} Bet: {bet.MaxBid:F0}/{bet.MinAsk:F0} D: {tup.Item1:P1}/{tup.Item2:P1}"))
+                .Subscribe(s => Console.WriteLine(s));
             
-            Accord.Controls.
+            Console.ReadLine();
+        }
+
+        private static async Task SavetoDb(LiveCoinApi api)
+        {
+//            while (true)
+//            {
+//                var model = (await api.GetBidAsk("BTC/USD")).ToBidAsk();
+//                var trades = (await api.GetLastTrades("BTC/USD")).Select(d => d.ToTrade()).ToArray();
+//
+//                var payload = new LineProtocolPayload();
+//                payload.Add(
+//                    new LineProtocolPoint("price", new Dictionary<string, object>()
+//                    {
+//                        {"maxBid", model.MaxBid},
+//                        {"minAsk", model.MinAsk},
+//                    }, utcTimestamp: DateTime.UtcNow));
+//
+//                foreach (var t in trades)
+//                {
+//                    movingAvarage.Push((double) t.Price);
+//                    payload.Add(
+//                        new LineProtocolPoint("trades", new Dictionary<string, object>()
+//                        {
+//                            {"price", t.Price},
+//                            {"quantity", t.Quantity},
+//                            {"movingAvarage", movingAvarage.Mean}
+//                        }, utcTimestamp: t.Time));
+//                }
+//            }
         }
 
         static async Task ReadHistoricalData()
