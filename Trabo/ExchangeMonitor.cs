@@ -34,9 +34,16 @@ namespace Trabo
             Bets = new TaskRepeatObservable().Create(() => _api.GetBidAsk(_currencyPair), CancellationToken.None)
                 .Select(dto => dto.ToBidAsk());
 
-            MovingAverage = Trades.Select(t => t.Price)
-                .Buffer(250, 1)
-                .Select(o => o.Average());
+
+            var movingAvarage = new Accord.Statistics.Moving.MovingNormalStatistics(250);
+            MovingAverage = Trades.Select(t => {
+                double p = (double)t.Price;
+                movingAvarage.Push(p);
+                return (decimal)movingAvarage.Mean;
+                }
+            );
+                //.Buffer(250, 1)
+                //.Select(o => o.Average());
 
             Delta = Bets.Zip(MovingAverage,
                 (ask, avg) => ((avg - ask.MinAsk) / avg, (ask.MaxBid - avg) / avg));

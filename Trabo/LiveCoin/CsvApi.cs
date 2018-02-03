@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Trabo.History;
@@ -24,7 +25,7 @@ namespace Trabo
             
             _reader = new HistoricalDataReader();
             _reader.OpenData(path);
-            _dataEnumerable = _reader.Data().GetEnumerator();
+            _dataEnumerable = _reader.Data().Skip(1500000).GetEnumerator();
         }
         
         public Task<TradeDto[]> GetLastTrades(string currencyPair)
@@ -39,7 +40,7 @@ namespace Trabo
                     id = _id++,
                     price = data.Low + (data.Hight - data.Low) / 2,
                     quantity = data.BTCVolume,
-                    time = data.Date * 1000,
+                    time = data.Date,
                     type = "type"
                 };
                 return Task.FromResult(new TradeDto[] {dto});

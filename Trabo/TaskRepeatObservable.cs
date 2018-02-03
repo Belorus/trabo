@@ -10,7 +10,7 @@ namespace Trabo
         public IObservable<T> Create<T>(Func<Task<T>> funcOfTask, CancellationToken cancellationToken)
         {
             Subject<T> subject = new Subject<T>();
-            Run(subject, funcOfTask, cancellationToken);
+            Task.Run(() => Run(subject, funcOfTask, cancellationToken));
             return subject;
         }
 
