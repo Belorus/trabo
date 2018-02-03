@@ -1,49 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using Trabo.Model;
 
 namespace Trabo.History
 {
-    public class HistoricalDataReader
+    public class HistoricalDataReader : IDisposable
     {
-        public IEnumerable<HistoricalDataModel> ReadData(string path)
+        private StreamReader _reader;
+
+
+        public void OpenData(string path)
         {
-            using (var file = File.OpenRead(path))
-            using (var reader = new StreamReader(file))
+            var file = File.OpenRead(path);
+            _reader = new StreamReader(file);
+            _reader.ReadLine(); // Timestamp,Open,High,Low,Close,Volume_(BTC),Volume_(Currency),Weighted_Price
+        }
+
+        public IEnumerable<HistoricalDataModel> Data()
+        {
+            string line;
+            while ((line = _reader.ReadLine()) != null)
             {
-                reader.ReadLine(); // Timestamp,Open,High,Low,Close,Volume_(BTC),Volume_(Currency),Weighted_Price
-
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                var values = line.Split(',');
+                var model = new HistoricalDataModel
                 {
-                    var values = line.Split(',');
-                    var model = new HistoricalDataModel
-                    {
-                        Date = DataExtensions.ToDateTime(long.Parse(values[0]), seconds: true),
-                        Open = decimal.Parse(values[1]),
-                        Hight = decimal.Parse(values[2]),
-                        Low = decimal.Parse(values[3]),
-                        Close = decimal.Parse(values[4]),
-                      //  BTCVolume = double.Parse(values[5]),
-                      //  USDVolume = double.Parse(values[6]),
-                      //  WeightedPrice = decimal.Parse(values[7]),
-                    };
+                    Date = long.Parse(values[0]),
+                    Open = double.Parse(values[1]),
+                    Hight = double.Parse(values[2]),
+                    Low = double.Parse(values[3]),
+                    Close = double.Parse(values[4]),
+                    BTCVolume = double.Parse(values[5]),
+                    USDVolume = double.Parse(values[6]),
+                    //  WeightedPrice = decimal.Parse(values[7]),
+                };
 
-                    yield return model;
-                }
+                yield return model;
             }
+        }
+        
+        public void Dispose()
+        {
+            _reader.Dispose();
         }
     }
 
-    public struct HistoricalDataModel
+    public class HistoricalDataModel
     {
-        public DateTime Date;
-        public decimal Open;
-        public decimal Hight;
-        public decimal Low;
-        public decimal Close;
+        public long Date;
+        public double Open;
+        public double Hight;
+        public double Low;
+        public double Close;
         public double BTCVolume;
         public double USDVolume;
         public decimal WeightedPrice;

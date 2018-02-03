@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -23,21 +23,23 @@ namespace Trabo
             CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
             var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "trabo");
-            var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
+            //var api = new LiveCoinApi("BN1tB4kJdAZASXYvwZNUsHGpgGsmxua6", "keRNy55jkKnute9MtmKZjZcrk9eprvHn");
 
-            var monitor = new ExchangeMonitor(api, "BTC/USD");
-            monitor.Start();
+            using (var api = new CsvApi(@"D:\bitcoin-historical-data\bitstampUSD_1-min_data_2012-01-01_to_2018-01-08.csv"))
+            {
+                var monitor = new ExchangeMonitor(api, "BTC/USD");
+                monitor.Start();
 
-
-            Observable.CombineLatest(
-                    monitor.MovingAverage,
-                    monitor.Delta,
-                    monitor.Bets,
-                    (avg, tup, bet) =>
-                        ($"SMA: {avg:C0} Bet: {bet.MaxBid:F0}/{bet.MinAsk:F0} D: {tup.Item1:P1}/{tup.Item2:P1}"))
-                .Subscribe(s => Console.WriteLine(s));
+                Observable.CombineLatest(
+                        monitor.MovingAverage,
+                        monitor.Delta,
+                        monitor.Bets,
+                        (avg, tup, bet) =>
+                            ($"SMA: {avg:C0} Bet: {bet.MaxBid:F0}/{bet.MinAsk:F0} D: {tup.Item1:P1}/{tup.Item2:P1}"))
+                    .Subscribe(s => Console.WriteLine(s));
             
-            Console.ReadLine();
+                Console.ReadLine();    
+            }
         }
 
         private static async Task SavetoDb(LiveCoinApi api)
@@ -71,26 +73,29 @@ namespace Trabo
 
         static async Task ReadHistoricalData()
         {
-            var reader = new HistoricalDataReader();
-            var data = reader.ReadData(@"C:\STUFF\Data\coinbaseUSD_1-min_data_2014-12-01_to_2018-01-08.csv");
-            var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "history");
-
-            foreach (var items in data.Batch(50))
+            using (var reader = new HistoricalDataReader())
             {
-                var payload = new LineProtocolPayload();
-                foreach (var item in items)
-                {
-                    payload.Add(
-                        new LineProtocolPoint("price", new Dictionary<string, object>()
-                        {
-                            {"open", item.Open},
-                            {"close", item.Close},
-                            {"low", item.Low},
-                            {"high", item.Hight}
-                        }, utcTimestamp: item.Date.ToUniversalTime()));
-                }
+                reader.OpenData(@"C:\STUFF\Data\coinbaseUSD_1-min_data_2014-12-01_to_2018-01-08.csv");
+                var data = reader.Data();
+                var cl = new LineProtocolClient(new Uri("http://localhost:8086"), "history");
 
-                await cl.WriteAsync(payload);
+                foreach (var items in data.Batch(50))
+                {
+                    var payload = new LineProtocolPayload();
+                    foreach (var item in items)
+                    {
+                        payload.Add(
+                            new LineProtocolPoint("price", new Dictionary<string, object>()
+                            {
+                                {"open", item.Open},
+                                {"close", item.Close},
+                                {"low", item.Low},
+                                {"high", item.Hight}
+                            }, utcTimestamp: DataExtensions.ToDateTime(item.Date, seconds: true)));
+                    }
+
+                    await cl.WriteAsync(payload);
+                }
             }
         }
 

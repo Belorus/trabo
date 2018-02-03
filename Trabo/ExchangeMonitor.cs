@@ -8,11 +8,11 @@ namespace Trabo
 {
     internal class ExchangeMonitor
     {
-        private readonly LiveCoinApi _api;
+        private readonly ILiveCoinApi _api;
         private readonly string _currencyPair;
 
         public ExchangeMonitor(
-            LiveCoinApi api,
+            ILiveCoinApi api,
             string currencyPair)
         {
             _api = api;

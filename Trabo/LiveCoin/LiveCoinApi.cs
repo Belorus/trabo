@@ -12,7 +12,7 @@ using RestSharp;
 
 namespace Trabo
 {
-    public class LiveCoinApi
+    public class LiveCoinApi : ILiveCoinApi
     {
         private readonly string _secretKey;
         private readonly string _apiKey;
