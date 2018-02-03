@@ -30,13 +30,13 @@ namespace Trabo
                 var monitor = new ExchangeMonitor(api, "BTC/USD");
                 monitor.Start();
 
-                Observable.CombineLatest(
-                        monitor.MovingAverage,
-                        monitor.Delta,
-                        monitor.Bets,
-                        (avg, tup, bet) =>
-                            ($"SMA: {avg:C0} Bet: {bet.MaxBid:F0}/{bet.MinAsk:F0} D: {tup.Item1:P1}/{tup.Item2:P1}"))
-                    .Subscribe(s => Console.WriteLine(s));
+
+            Observable.CombineLatest(
+                    monitor.MovingAverage,
+                    monitor.OrderBook,
+                    (avg, ob) =>
+                        ($"SMA: {avg:C0} OB: {ob.Bids[0].Price:F0}/{ob.Asks[0].Price:F0} D: {((avg - ob.Asks[0].Price) / avg)}/{(ob.Bids[0].Price - avg) / avg}"))
+                .Subscribe(s => Console.WriteLine(s));
             
                 Console.ReadLine();    
             }
