@@ -31,8 +31,9 @@ namespace Trabo
                 .RefCount();
 
             OrderBook = new TaskRepeatObservable()
-                .Create(() => _api.GetOrderbook(_currencyPair, true, 1), CancellationToken.None)
+                .Create(() => _api.GetOrderbook(_currencyPair, true, 5), CancellationToken.None)
                 .Select(ob => ob.ToOrderBook())
+                .Distinct()
                 .Publish()
                 .RefCount();
         }

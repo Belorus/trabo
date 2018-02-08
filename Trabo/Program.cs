@@ -22,12 +22,12 @@ namespace Trabo
 
         private static void BotOnUpdated()
         {
-            if (bot.Delta > 1.5m)
+            if (bot.DeltaWithComission > 1m)
                 Console.ForegroundColor = ConsoleColor.Yellow;
-            else if (bot.Delta > 2.5m)
+            else if (bot.DeltaWithComission > 1.5m)
                 Console.ForegroundColor = ConsoleColor.Green;
                 
-            Console.WriteLine($"{DateTime.Now} - SMA[{bot.MovingAverage.Count}] = {bot.MovingAverage.Mean:F4} BIDASK = {bot.LastOrderbook.Bids[0].Price:F4}/{bot.LastOrderbook.Asks[0].Price:F4} DELTAcom = {bot.DeltaWithComission:F1}");
+            Console.WriteLine($"{DateTime.Now} - SMA[{bot.MovingAverage.Count}] = {bot.MovingAverage.Mean:F5} BIDASK = {bot.LastOrderbook.Bids[0].Price:F4}/{bot.LastOrderbook.Asks[0].Price:F4} DELTA = {bot.Delta:F1} DELTAcom = {bot.DeltaWithComission:F1}");
 
             Console.ForegroundColor = ConsoleColor.Gray;
         }
